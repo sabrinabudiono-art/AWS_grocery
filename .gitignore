@@ -3,3 +3,12 @@ frontend/frontend-build.zip
 frontend/temp_extract/
 frontend/src/config.js~
 venv/
+my-key
+
+# Terraform — never commit secrets or local state
+*.tfvars
+*.tfvars.json
+terraform.tfstate
+terraform.tfstate.backup
+.terraform/
+.terraform.lock.hcl

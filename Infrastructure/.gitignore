@@ -1,0 +1,14 @@
+# Sensitive values — never commit
+*.tfvars
+*.tfvars.json
+
+# State files contain secrets and live infrastructure details
+terraform.tfstate
+terraform.tfstate.backup
+
+# Downloaded provider binaries — large and reproducible via terraform init
+.terraform/
+
+# Lock file is safe to commit (helps with reproducible installs) — remove this
+# line if you want to exclude it too
+# .terraform.lock.hcl
