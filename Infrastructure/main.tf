@@ -1,21 +1,13 @@
-# Configure the AWS Provider
-provider "aws" {
-  region = var.aws_region
-  default_tags {
-    tags = {
-      Project     = "grocery-shop"
-      Environment = "development"
-      ManagedBy   = "terraform"
-    }
-  }
-}
+# ── Shared lookups ─────────────────────────────────────────────────────────────
+# These read existing AWS info and are shared by several modules, so they live
+# in the root and get passed into modules as plain values.
 
-# Get default VPC
+# Default VPC for the account
 data "aws_vpc" "default" {
   default = true
 }
 
-# Fetch the latest Amazon Linux 2023 AMI
+# Latest Amazon Linux 2023 AMI
 data "aws_ami" "amazon_linux_2023" {
   most_recent = true
   owners      = ["137112412989"]
@@ -26,71 +18,72 @@ data "aws_ami" "amazon_linux_2023" {
   }
 }
 
-# Import your public key
+# All subnets in the default VPC (used by ALB, compute, and RDS)
+data "aws_subnets" "default" {
+  filter {
+    name   = "vpc-id"
+    values = [data.aws_vpc.default.id]
+  }
+}
+
+# Our own AWS account ID (used to make the S3 bucket name unique)
+data "aws_caller_identity" "current" {}
+
+# SSH key pair shared by the compute instances
 resource "aws_key_pair" "main" {
   key_name   = "terraform-key"
   public_key = file(var.public_key_path)
 }
 
-# ── ALB Security Group ─────────────────────────────────────────────────────────
+# ── Modules ──────────────────────────────────────────────────────────────────────
 
-resource "aws_security_group" "alb" {
-  name        = "terraform-alb"
-  description = "Allow inbound HTTP from the internet and all outbound traffic"
-  vpc_id      = data.aws_vpc.default.id
-  tags = {
-    Name = "terraform-alb"
-  }
+# Firewalls for the ALB, EC2 instances, and database
+module "security_groups" {
+  source = "./modules/security_groups"
+
+  vpc_id = data.aws_vpc.default.id
+  my_ip  = var.my_ip
 }
 
-resource "aws_vpc_security_group_ingress_rule" "alb_http" {
-  security_group_id = aws_security_group.alb.id
-  description       = "HTTP from the internet"
-  from_port         = 80
-  to_port           = 80
-  ip_protocol       = "tcp"
-  cidr_ipv4         = "0.0.0.0/0"
+# Public load balancer that fronts the app servers
+module "alb" {
+  source = "./modules/alb"
+
+  vpc_id     = data.aws_vpc.default.id
+  subnet_ids = data.aws_subnets.default.ids
+  alb_sg_id  = module.security_groups.alb_sg_id
 }
 
-resource "aws_vpc_security_group_egress_rule" "alb_all_out" {
-  security_group_id = aws_security_group.alb.id
-  description       = "All outbound traffic"
-  ip_protocol       = "-1"
-  cidr_ipv4         = "0.0.0.0/0"
+# Auto Scaling Group of EC2 instances behind the ALB
+module "compute" {
+  source = "./modules/compute"
+
+  ami_id           = data.aws_ami.amazon_linux_2023.id
+  instance_type    = var.ec2_instance_type
+  key_name         = aws_key_pair.main.key_name
+  ec2_sg_id        = module.security_groups.ec2_sg_id
+  subnet_ids       = data.aws_subnets.default.ids
+  target_group_arn = module.alb.target_group_arn
+  min_size         = var.asg_min_size
+  max_size         = var.asg_max_size
+  desired_capacity = var.asg_desired_capacity
 }
 
-# ── EC2 Security Group ─────────────────────────────────────────────────────────
+# PostgreSQL database
+module "rds" {
+  source = "./modules/rds"
 
-resource "aws_security_group" "ssh" {
-  name        = "terraform-ssh"
-  description = "Allow SSH from your IP and HTTP from the ALB only"
-  vpc_id      = data.aws_vpc.default.id
-  tags = {
-    Name = "terraform-ssh"
-  }
+  subnet_ids     = data.aws_subnets.default.ids
+  rds_sg_id      = module.security_groups.rds_sg_id
+  instance_class = var.db_instance_class
+  db_name        = var.db_name
+  db_username    = var.db_username
+  db_password    = var.db_password
 }
 
-resource "aws_vpc_security_group_ingress_rule" "ec2_ssh" {
-  security_group_id = aws_security_group.ssh.id
-  description       = "SSH from my IP"
-  from_port         = 22
-  to_port           = 22
-  ip_protocol       = "tcp"
-  cidr_ipv4         = var.my_ip
-}
+# S3 bucket for user avatars
+module "s3" {
+  source = "./modules/s3"
 
-resource "aws_vpc_security_group_ingress_rule" "ec2_http_from_alb" {
-  security_group_id            = aws_security_group.ssh.id
-  description                  = "HTTP from the ALB"
-  from_port                    = 80
-  to_port                      = 80
-  ip_protocol                  = "tcp"
-  referenced_security_group_id = aws_security_group.alb.id
-}
-
-resource "aws_vpc_security_group_egress_rule" "ec2_all_out" {
-  security_group_id = aws_security_group.ssh.id
-  description       = "All outbound traffic"
-  ip_protocol       = "-1"
-  cidr_ipv4         = "0.0.0.0/0"
+  account_id = data.aws_caller_identity.current.account_id
 }

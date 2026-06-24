@@ -2,6 +2,10 @@
 *.tfvars
 *.tfvars.json
 
+# SSH private keys — must stay on your machine only
+*.pem
+my-key
+
 # State files contain secrets and live infrastructure details
 terraform.tfstate
 terraform.tfstate.backup

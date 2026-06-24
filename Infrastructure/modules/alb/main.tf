@@ -1,30 +1,23 @@
-# Grab the default VPC's subnets for the ALB (needs at least 2 AZs)
-data "aws_subnets" "alb" {
-  filter {
-    name   = "vpc-id"
-    values = [data.aws_vpc.default.id]
-  }
-}
-
-# Application Load Balancer
+# Application Load Balancer — the public "front door" that receives all HTTP traffic.
 resource "aws_lb" "main" {
   name               = "grocery-alb"
   internal           = false
   load_balancer_type = "application"
-  security_groups    = [aws_security_group.alb.id]
-  subnets            = data.aws_subnets.alb.ids
+  security_groups    = [var.alb_sg_id]
+  subnets            = var.subnet_ids
 
   tags = {
     Name = "grocery-alb"
   }
 }
 
-# Target Group — the ALB forwards requests here; ASG registers instances automatically
+# Target Group — the list of servers the ALB forwards requests to.
+# The Auto Scaling Group registers its instances here automatically.
 resource "aws_lb_target_group" "main" {
   name     = "grocery-tg"
   port     = 80
   protocol = "HTTP"
-  vpc_id   = data.aws_vpc.default.id
+  vpc_id   = var.vpc_id
 
   health_check {
     path                = "/"
@@ -39,7 +32,7 @@ resource "aws_lb_target_group" "main" {
   }
 }
 
-# Listener — listens on port 80 and forwards to the target group
+# Listener — "when traffic arrives on port 80, forward it to the target group".
 resource "aws_lb_listener" "http" {
   load_balancer_arn = aws_lb.main.arn
   port              = 80

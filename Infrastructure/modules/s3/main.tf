@@ -1,7 +1,6 @@
-data "aws_caller_identity" "current" {}
-
+# S3 bucket for user avatars. The account ID in the name keeps it globally unique.
 resource "aws_s3_bucket" "avatars" {
-  bucket = "grocerymate-avatars-${data.aws_caller_identity.current.account_id}"
+  bucket = "grocerymate-avatars-${var.account_id}"
 
   tags = {
     Name        = "grocerymate-avatars"
@@ -9,7 +8,7 @@ resource "aws_s3_bucket" "avatars" {
   }
 }
 
-# Block all public access — objects should only be reachable by your app
+# Block all public access — objects should only be reachable by your app.
 resource "aws_s3_bucket_public_access_block" "avatars" {
   bucket = aws_s3_bucket.avatars.id
 
@@ -19,7 +18,7 @@ resource "aws_s3_bucket_public_access_block" "avatars" {
   restrict_public_buckets = true
 }
 
-# Encrypt all objects at rest using AWS-managed keys
+# Encrypt all objects at rest using AWS-managed keys.
 resource "aws_s3_bucket_server_side_encryption_configuration" "avatars" {
   bucket = aws_s3_bucket.avatars.id
 
@@ -30,7 +29,7 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "avatars" {
   }
 }
 
-# Keep previous versions of files so accidental deletes can be recovered
+# Keep previous versions of files so accidental deletes can be recovered.
 resource "aws_s3_bucket_versioning" "avatars" {
   bucket = aws_s3_bucket.avatars.id
 

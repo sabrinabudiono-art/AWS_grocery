@@ -13,7 +13,7 @@ variable "ec2_instance_type" {
 variable "public_key_path" {
   description = "Path to your SSH public key file"
   type        = string
-  default     = "./my-key.pub"
+  default     = "./terraform-key.pem.pub"
 }
 
 variable "my_ip" {
