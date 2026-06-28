@@ -12,3 +12,8 @@ output "s3_bucket_name" {
   description = "Name of the avatars S3 bucket"
   value       = module.s3.bucket_name
 }
+
+output "ecr_repository_url" {
+  description = "Push your Docker image here (use with docker tag/push)"
+  value       = module.ecr.repository_url
+}

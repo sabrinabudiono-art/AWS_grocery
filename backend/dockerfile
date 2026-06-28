@@ -1,17 +1,20 @@
-# Use the official Python image as a base
-FROM python:3.9
+# Use a small official Python image (slim = much smaller than the full image)
+FROM python:3.9-slim
 
 # Set the working directory inside the container
 WORKDIR /app
 
-# Copy the application files into the container
-COPY . .
-
-# Ensure the .env file is copied
-COPY .env .env
-
-# Install dependencies
+# Copy ONLY requirements first. Docker caches this layer, so it reinstalls
+# dependencies only when requirements.txt changes — not on every code edit.
+COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Run the application
-CMD ["python", "run.py"]
+# Now copy the rest of the application code
+COPY . .
+
+# The app listens on port 80 inside the container
+EXPOSE 80
+
+# Run the app with gunicorn (a production-grade server) instead of the
+# Flask dev server. "run:app" means: in run.py, use the variable named app.
+CMD ["gunicorn", "--bind", "0.0.0.0:80", "run:app"]

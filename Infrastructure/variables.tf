@@ -47,6 +47,12 @@ variable "db_password" {
   sensitive   = true
 }
 
+variable "jwt_secret" {
+  description = "Secret key the app uses to sign JWT tokens — set this in terraform.tfvars"
+  type        = string
+  sensitive   = true
+}
+
 # ── Auto Scaling Group ─────────────────────────────────────────────────────────
 
 variable "asg_min_size" {

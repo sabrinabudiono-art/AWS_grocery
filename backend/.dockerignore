@@ -1,0 +1,24 @@
+# Secrets — must NEVER be copied into the image
+.env
+.env.example
+
+# Editor / IDE files
+.idea/
+
+# Python caches and compiled files
+__pycache__/
+**/__pycache__/
+*.py[cod]
+*.py~
+
+# Local runtime data and backups (not needed in the image)
+logs/
+db_backup/
+*.sql
+*.sql~
+
+# Git and Docker files themselves
+.git/
+.gitignore
+dockerfile
+.dockerignore

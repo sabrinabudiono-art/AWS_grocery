@@ -54,6 +54,13 @@ module "alb" {
   alb_sg_id  = module.security_groups.alb_sg_id
 }
 
+# Container registry that stores the backend Docker image
+module "ecr" {
+  source = "./modules/ecr"
+
+  repository_name = "grocery-backend"
+}
+
 # Auto Scaling Group of EC2 instances behind the ALB
 module "compute" {
   source = "./modules/compute"
@@ -67,6 +74,18 @@ module "compute" {
   min_size         = var.asg_min_size
   max_size         = var.asg_max_size
   desired_capacity = var.asg_desired_capacity
+
+  # Container settings — where to pull the image from and how to log in.
+  aws_region   = var.aws_region
+  ecr_registry = "${data.aws_caller_identity.current.account_id}.dkr.ecr.${var.aws_region}.amazonaws.com"
+  image_url    = "${module.ecr.repository_url}:latest"
+
+  # Database connection + app secret, passed into the container as env vars.
+  db_endpoint = module.rds.db_endpoint
+  db_name     = var.db_name
+  db_username = var.db_username
+  db_password = var.db_password
+  jwt_secret  = var.jwt_secret
 }
 
 # PostgreSQL database

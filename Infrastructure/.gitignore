@@ -2,9 +2,11 @@
 *.tfvars
 *.tfvars.json
 
-# SSH private keys — must stay on your machine only
+# SSH keys — keep both private and public keys out of the repo
 *.pem
+*.pem.pub
 my-key
+my-key.pub
 
 # State files contain secrets and live infrastructure details
 terraform.tfstate
