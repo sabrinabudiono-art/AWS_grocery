@@ -5,7 +5,7 @@ output "alb_sg_id" {
 
 output "ec2_sg_id" {
   description = "ID of the EC2 security group"
-  value       = aws_security_group.ssh.id
+  value       = aws_security_group.app.id
 }
 
 output "rds_sg_id" {

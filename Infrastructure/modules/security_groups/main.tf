@@ -26,20 +26,21 @@ resource "aws_vpc_security_group_egress_rule" "alb_all_out" {
   cidr_ipv4         = "0.0.0.0/0"
 }
 
-# ── EC2 Security Group ─────────────────────────────────────────────────────────
-# The firewall for the app servers: SSH only from your IP, HTTP only from the ALB.
+# ── App (EC2) Security Group ───────────────────────────────────────────────────
+# The firewall for the app servers. Named "app" rather than "ssh" because it
+# governs all instance traffic — SSH from your IP AND HTTP from the ALB.
 
-resource "aws_security_group" "ssh" {
-  name        = "terraform-ssh"
+resource "aws_security_group" "app" {
+  name        = "terraform-app"
   description = "Allow SSH from your IP and HTTP from the ALB only"
   vpc_id      = var.vpc_id
   tags = {
-    Name = "terraform-ssh"
+    Name = "terraform-app"
   }
 }
 
 resource "aws_vpc_security_group_ingress_rule" "ec2_ssh" {
-  security_group_id = aws_security_group.ssh.id
+  security_group_id = aws_security_group.app.id
   description       = "SSH from my IP"
   from_port         = 22
   to_port           = 22
@@ -48,7 +49,7 @@ resource "aws_vpc_security_group_ingress_rule" "ec2_ssh" {
 }
 
 resource "aws_vpc_security_group_ingress_rule" "ec2_http_from_alb" {
-  security_group_id            = aws_security_group.ssh.id
+  security_group_id            = aws_security_group.app.id
   description                  = "HTTP from the ALB"
   from_port                    = 80
   to_port                      = 80
@@ -57,7 +58,7 @@ resource "aws_vpc_security_group_ingress_rule" "ec2_http_from_alb" {
 }
 
 resource "aws_vpc_security_group_egress_rule" "ec2_all_out" {
-  security_group_id = aws_security_group.ssh.id
+  security_group_id = aws_security_group.app.id
   description       = "All outbound traffic"
   ip_protocol       = "-1"
   cidr_ipv4         = "0.0.0.0/0"
@@ -81,7 +82,7 @@ resource "aws_vpc_security_group_ingress_rule" "rds_postgres_from_ec2" {
   from_port                    = 5432
   to_port                      = 5432
   ip_protocol                  = "tcp"
-  referenced_security_group_id = aws_security_group.ssh.id
+  referenced_security_group_id = aws_security_group.app.id
 }
 
 resource "aws_vpc_security_group_egress_rule" "rds_all_out" {

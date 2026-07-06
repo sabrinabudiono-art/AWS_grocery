@@ -90,9 +90,12 @@ resource "aws_autoscaling_group" "main" {
   # Register instances with the ALB target group automatically.
   target_group_arns = [var.target_group_arn]
 
-  # Replace instances the ALB reports as unhealthy.
+  # Replace instances the ALB reports as unhealthy. The grace period gives each
+  # new instance time to run its boot script (install Docker, log in to ECR, pull
+  # the image, start the container) before health checks start counting — 60s was
+  # too tight and caused false-negative replacements.
   health_check_type         = "ELB"
-  health_check_grace_period = 60
+  health_check_grace_period = 300
 
   launch_template {
     id      = aws_launch_template.main.id

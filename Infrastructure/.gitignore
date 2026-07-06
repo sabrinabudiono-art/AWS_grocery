@@ -11,6 +11,8 @@ my-key.pub
 # State files contain secrets and live infrastructure details
 terraform.tfstate
 terraform.tfstate.backup
+# Local state lock — transient, must never be committed
+.terraform.tfstate.lock.info
 
 # Downloaded provider binaries — large and reproducible via terraform init
 .terraform/
